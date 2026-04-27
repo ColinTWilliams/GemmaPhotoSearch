@@ -27,9 +27,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Qdrant data
-qdrant_storage/
-
 # Sample photos - do NOT commit personal media
 samplePhotos/
 

@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 class QdrantStore:
     def __init__(self):
-        # Local mode: persists to disk at ./qdrant_storage
-        self.client = QdrantClient(path="./qdrant_storage")
+        # In-memory mode avoids Windows file-locking issues with uvicorn --reload
+        self.client = QdrantClient(":memory:")
         self.collection_name = settings.qdrant_collection_name
         self._ensure_collection()
 
