@@ -1,0 +1,2 @@
+# Qdrant runs in local mode via the Python client (qdrant_client.QdrantClient(path="./qdrant_storage"))
+# No Docker required — the vector DB persists to disk automatically.
