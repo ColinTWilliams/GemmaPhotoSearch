@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     vector_size: int = 3072
 
     class Config:
-        env_file = ".env"
+        env_file = str(Path(__file__).parent / ".env")
         env_file_encoding = "utf-8"
         extra = "allow"
 

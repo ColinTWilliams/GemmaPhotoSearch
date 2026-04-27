@@ -31,6 +31,17 @@ _embedder = None
 _store = None
 
 
+@app.on_event("startup")
+def startup():
+    env_path = Path(__file__).parent / ".env"
+    if not settings.gemini_api_key:
+        logger.error("=" * 60)
+        logger.error("GEMINI_API_KEY is not set!")
+        logger.error(f"Create a file at: {env_path}")
+        logger.error("with the content: GEMINI_API_KEY=your_actual_key_here")
+        logger.error("=" * 60)
+
+
 def get_embedder() -> GeminiEmbedder:
     global _embedder
     if _embedder is None:
@@ -47,9 +58,12 @@ def get_store() -> QdrantStore:
 
 @app.post("/index", response_model=IndexResponse)
 def index_photos():
-    indexer = Indexer()
-    result = indexer.index_photos()
-    return IndexResponse(**result)
+    try:
+        indexer = Indexer()
+        result = indexer.index_photos()
+        return IndexResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/search", response_model=SearchResponse)
@@ -57,7 +71,11 @@ def search(request: SearchRequest):
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query must not be empty")
 
-    vector = get_embedder().embed_text(request.query)
+    try:
+        vector = get_embedder().embed_text(request.query)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
     if vector is None:
         raise HTTPException(status_code=502, detail="Embedding service failed")
 
