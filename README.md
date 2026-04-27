@@ -8,7 +8,7 @@ Type natural language queries like "dog at the park" or "autumn leaves" and see 
 
 - **Text-to-image search**: Type any description and find matching photos via multimodal embeddings.
 - **Gemini Embedding 2**: Uses Google's first natively multimodal embedding model (text, image, video, audio, documents in one unified space).
-- **Qdrant vector database**: Local on-disk vector storage with cosine similarity search.
+- **Qdrant vector database**: In-memory vector storage with cosine similarity search (no Docker required).
 - **React + Tailwind UI**: Clean, responsive dark-mode interface with image previews.
 - **Extensible**: Ready to add PDFs, videos, and audio later — same vector space, same search.
 
@@ -55,9 +55,9 @@ python -m venv .venv
 # Windows PowerShell
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# Create your .env file
-copy .env.example .env
-# Edit .env and set: GEMINI_API_KEY=your_actual_key_here
+# Set your API key as an environment variable
+# (PowerShell)
+$env:GEMINI_API_KEY="your_actual_key_here"
 
 # Start the server
 .venv\Scripts\uvicorn.exe main:app --reload --port 8000
@@ -142,7 +142,7 @@ No database migration needed — Qdrant payloads are schemaless.
 
 ## Security Notes
 
-- `GEMINI_API_KEY` lives **only** in `backend/.env`, which is `.gitignore`-d.
+- `GEMINI_API_KEY` is read from the **environment variable** `GEMINI_API_KEY`.
 - `samplePhotos/` is also `.gitignore`-d so your personal media is never committed.
 - The `/photos/{path}` endpoint validates paths to prevent directory traversal.
 - The frontend proxy configuration never exposes the API key to the browser.

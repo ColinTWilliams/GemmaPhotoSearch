@@ -33,12 +33,10 @@ _store = None
 
 @app.on_event("startup")
 def startup():
-    env_path = Path(__file__).parent / ".env"
     if not settings.gemini_api_key:
         logger.error("=" * 60)
         logger.error("GEMINI_API_KEY is not set!")
-        logger.error(f"Create a file at: {env_path}")
-        logger.error("with the content: GEMINI_API_KEY=your_actual_key_here")
+        logger.error("Set the environment variable: GEMINI_API_KEY=your_actual_key_here")
         logger.error("=" * 60)
 
 
