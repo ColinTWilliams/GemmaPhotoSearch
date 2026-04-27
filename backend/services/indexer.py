@@ -56,7 +56,8 @@ class Indexer:
                     with_payload=True,
                     with_vectors=False,
                 )
-                points = response[0]
+                # QdrantLocal.scroll returns (points, next_offset)
+                points = response[0] if isinstance(response, tuple) else response
                 if not points:
                     break
                 for p in points:
