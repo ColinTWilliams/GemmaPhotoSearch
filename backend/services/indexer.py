@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import uuid
 from pathlib import Path
 from typing import List, Tuple
 from PIL import Image
@@ -24,6 +25,10 @@ class Indexer:
             for chunk in iter(lambda: f.read(8192), b""):
                 hasher.update(chunk)
         return hasher.hexdigest()
+
+    def _hash_to_uuid(self, hex_hash: str) -> uuid.UUID:
+        # Deterministic UUID from first 16 bytes of SHA256 hash
+        return uuid.UUID(bytes=bytes.fromhex(hex_hash[:32]))
 
     def _get_image_dimensions(self, path: Path) -> Tuple[int, int]:
         try:
@@ -87,8 +92,9 @@ class Indexer:
                     "content_hash": file_hash,
                 }
 
+                point_id = self._hash_to_uuid(file_hash)
                 points.append(
-                    PointStruct(id=file_hash, vector=vector, payload=payload)
+                    PointStruct(id=point_id, vector=vector, payload=payload)
                 )
                 indexed += 1
 
