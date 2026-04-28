@@ -1,4 +1,4 @@
-# GemmaPhotoSearch
+# GeminiPhotoSearch
 
 A web-based multimodal semantic search app for your local photo library, powered by **Google Gemini Embedding 2**.
 
@@ -34,8 +34,8 @@ Image preview            Persistent vector storage + search
 ### 2. Clone & Setup
 
 ```bash
-git clone https://github.com/ColinTWilliams/GemmaPhotoSearch.git
-cd GemmaPhotoSearch
+git clone https://github.com/ColinTWilliams/GeminiPhotoSearch.git
+cd GeminiPhotoSearch
 ```
 
 ### 3. Add your photos
@@ -88,7 +88,7 @@ The frontend will open at **http://localhost:5173** and proxy API calls to the b
 ## Project Structure
 
 ```
-GemmaPhotoSearch/
+GeminiPhotoSearch/
 ├── backend/
 │   ├── main.py                  # FastAPI app (search, index, stats, photo serving)
 │   ├── config.py                # Pydantic settings + .env loader

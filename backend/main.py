@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Project root is two levels above this file (backend/main.py)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-app = FastAPI(title="GemmaPhotoSearch", version="0.1.0")
+app = FastAPI(title="GeminiPhotoSearch", version="0.1.0")
 
 # CORS for local React dev server
 app.add_middleware(

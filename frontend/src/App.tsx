@@ -55,7 +55,7 @@ function App() {
     <div className="min-h-screen flex flex-col">
       <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold tracking-tight">GemmaPhotoSearch</h1>
+          <h1 className="text-xl font-bold tracking-tight">GeminiPhotoSearch</h1>
           <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
             Gemini Embedding 2
           </span>
