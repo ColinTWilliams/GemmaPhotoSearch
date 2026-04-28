@@ -51,12 +51,20 @@ export default function ResultsGrid({ results, query, loading, onPreview }: Resu
               </span>
             </div>
             {(r.date_taken || r.location) && (
-              <div className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] text-gray-400 leading-tight">
+              <div className="mt-1.5 flex flex-col gap-1">
                 {r.date_taken && (
-                  <span>{new Date(r.date_taken).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-gray-400 leading-tight">
+                    {new Date(r.date_taken).toLocaleDateString()}
+                  </span>
                 )}
                 {r.location && (
-                  <span className="truncate max-w-full" title={r.location}>{r.location}</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 leading-tight">
+                    <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="truncate max-w-full" title={r.location}>{r.location}</span>
+                  </span>
                 )}
               </div>
             )}

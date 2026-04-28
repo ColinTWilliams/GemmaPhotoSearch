@@ -30,9 +30,9 @@ export default function ImagePreview({ result, onClose }: ImagePreviewProps) {
             )}
           </p>
           {(result.date_taken || result.location) && (
-            <div className="mt-1.5 text-xs text-gray-400">
+            <div className="mt-2 flex flex-col items-center gap-1">
               {result.date_taken && (
-                <span>
+                <span className="text-xs text-gray-400">
                   {new Date(result.date_taken).toLocaleString(undefined, {
                     year: 'numeric',
                     month: 'short',
@@ -43,7 +43,13 @@ export default function ImagePreview({ result, onClose }: ImagePreviewProps) {
                 </span>
               )}
               {result.location && (
-                <span className="ml-2">{result.location}</span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
+                  <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>{result.location}</span>
+                </span>
               )}
             </div>
           )}
