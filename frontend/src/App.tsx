@@ -51,7 +51,7 @@ function App() {
       const data = await indexPhotos();
       const s = await getStats();
       setStats(s);
-      alert(`Indexed ${data.indexed} new, skipped ${data.skipped}, errors ${data.errors}`);
+      alert(`Indexed ${data.indexed} new, updated ${data.updated} metadata, skipped ${data.skipped}, errors ${data.errors}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Index failed');
     } finally {

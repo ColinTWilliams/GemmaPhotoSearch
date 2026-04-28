@@ -61,7 +61,7 @@ export async function search(
   return handleResponse(res, 'Search');
 }
 
-export async function indexPhotos(): Promise<{ indexed: number; skipped: number; errors: number }> {
+export async function indexPhotos(): Promise<{ indexed: number; updated: number; skipped: number; errors: number }> {
   const res = await fetch(`${API_BASE}/api/index`, { method: 'POST' });
   return handleResponse(res, 'Index');
 }

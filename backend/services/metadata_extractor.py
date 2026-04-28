@@ -1,6 +1,7 @@
 import json
 import logging
 import sqlite3
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Tuple
 
 from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
+from PIL.ExifTags import TAGS
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,9 @@ _CACHE_DB = _CACHE_DIR / "geocache.db"
 
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
 _NOMINATIM_HEADERS = {"User-Agent": "GeminiPhotoSearch/0.1.0"}
+
+_last_nominatim_call = 0.0
+_lock = threading.Lock()
 
 
 def _init_cache() -> sqlite3.Connection:
@@ -40,7 +44,6 @@ def _init_cache() -> sqlite3.Connection:
 
 
 def _get_cached_location(lat: float, lon: float) -> str | None:
-    """Return cached display_name for rounded coordinates, or None."""
     lat_r = f"{lat:.3f}"
     lon_r = f"{lon:.3f}"
     conn = _init_cache()
@@ -72,7 +75,6 @@ def _cache_location(lat: float, lon: float, display_name: str) -> None:
 
 
 def _fetch_nominatim(lat: float, lon: float) -> str | None:
-    """Call Nominatim reverse API. Returns display_name or None on failure."""
     url = f"{_NOMINATIM_URL}?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
     req = urllib.request.Request(url, headers=_NOMINATIM_HEADERS)
     try:
@@ -89,8 +91,19 @@ def _fetch_nominatim(lat: float, lon: float) -> str | None:
     return None
 
 
+def _rate_limited_fetch_nominatim(lat: float, lon: float) -> str | None:
+    """Fetch from Nominatim while respecting the 1 req/sec rate limit."""
+    global _last_nominatim_call
+    with _lock:
+        elapsed = time.time() - _last_nominatim_call
+        if elapsed < 1.0:
+            time.sleep(1.0 - elapsed)
+        display_name = _fetch_nominatim(lat, lon)
+        _last_nominatim_call = time.time()
+        return display_name
+
+
 def _dms_to_dd(dms, ref: str) -> float:
-    """Convert GPS DMS tuple to decimal degrees."""
     degrees = dms[0]
     minutes = dms[1]
     seconds = dms[2]
@@ -101,11 +114,9 @@ def _dms_to_dd(dms, ref: str) -> float:
 
 
 def extract_gps(exif_data: dict) -> Tuple[float, float] | None:
-    """Extract (lat, lon) from EXIF GPSInfo if present."""
     gps_info = exif_data.get("GPSInfo")
     if not gps_info:
         return None
-
     try:
         lat_dms = gps_info.get(2)
         lat_ref = gps_info.get(1)
@@ -121,14 +132,11 @@ def extract_gps(exif_data: dict) -> Tuple[float, float] | None:
 
 
 def extract_date_taken(exif_data: dict) -> str | None:
-    """Extract DateTimeOriginal (tag 36867) or DateTime (tag 306) as ISO-8601."""
-    # Tag numbers for DateTimeOriginal and DateTime
     date_tags = (36867, 306)
     for tag in date_tags:
         val = exif_data.get(tag)
         if val:
             try:
-                # EXIF format: "2024:08:12 15:30:00"
                 dt = datetime.strptime(val, "%Y:%m:%d %H:%M:%S")
                 return dt.isoformat()
             except ValueError:
@@ -137,52 +145,36 @@ def extract_date_taken(exif_data: dict) -> str | None:
 
 
 def extract_metadata(image_path: Path) -> dict:
-    """
-    Extract EXIF metadata from an image.
-    Returns dict with keys: date_taken, lat, lon, location (or None if missing).
-    """
-    result: dict = {
+    result = {
         "date_taken": None,
         "lat": None,
         "lon": None,
         "location": None,
     }
-
     try:
         with Image.open(image_path) as img:
             exif = img.getexif()
             if not exif:
                 return result
-
-            # Build a tag-id -> value map
-            exif_data = {TAGS.get(tag, tag): value for tag, value in exif.items()}
-            # Also include raw tag numbers for GPS
             raw_data = {tag: value for tag, value in exif.items()}
 
-            # Date
             date_taken = extract_date_taken(raw_data)
             if date_taken:
                 result["date_taken"] = date_taken
 
-            # GPS
             gps = extract_gps(raw_data)
             if gps:
                 lat, lon = gps
                 result["lat"] = lat
                 result["lon"] = lon
-
-                # Reverse geocode (cached)
                 cached = _get_cached_location(lat, lon)
                 if cached:
                     result["location"] = cached
                 else:
-                    # Rate limit: sleep 1s before calling Nominatim
-                    time.sleep(1.0)
-                    display_name = _fetch_nominatim(lat, lon)
+                    display_name = _rate_limited_fetch_nominatim(lat, lon)
                     if display_name:
                         _cache_location(lat, lon, display_name)
                         result["location"] = display_name
     except Exception as e:
         logger.warning(f"EXIF extraction failed for {image_path}: {e}")
-
     return result

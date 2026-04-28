@@ -38,6 +38,10 @@ class Indexer:
         except Exception:
             return (0, 0)
 
+    def _has_metadata(self, payload: dict) -> bool:
+        """Check if payload already has extracted metadata."""
+        return payload.get("date_taken") is not None or payload.get("location") is not None
+
     def index_photos(self) -> dict:
         photos_dir = settings.photos_dir.resolve()
         if not photos_dir.exists():
@@ -47,42 +51,64 @@ class Indexer:
         label_vectors = self.embedder.embed_labels(DEFAULT_LABELS)
         logger.info(f"Embedded {len(label_vectors)} label vectors for label matching")
 
-        # Build a map of existing IDs to content hashes to skip re-indexing
-        existing_ids = self.store.get_all_ids()
-        existing_hashes = set()
-        if existing_ids:
-            # Retrieve payloads for existing IDs to get content_hash
-            offset = 0
-            while True:
-                response = self.store.client.scroll(
-                    collection_name=self.store.collection_name,
-                    offset=offset,
-                    limit=100,
-                    with_payload=True,
-                    with_vectors=False,
-                )
-                # QdrantLocal.scroll returns (points, next_offset)
-                points = response[0] if isinstance(response, tuple) else response
-                if not points:
-                    break
-                for p in points:
-                    h = p.payload.get("content_hash")
-                    if h:
-                        existing_hashes.add(h)
-                offset += len(points)
+        # Build a map of existing hashes -> point info (id, payload, vector)
+        existing_by_hash: dict[str, dict] = {}
+        offset = 0
+        while True:
+            response = self.store.client.scroll(
+                collection_name=self.store.collection_name,
+                offset=offset,
+                limit=100,
+                with_payload=True,
+                with_vectors=True,
+            )
+            points = response[0] if isinstance(response, tuple) else response
+            if not points:
+                break
+            for p in points:
+                h = p.payload.get("content_hash")
+                if h:
+                    existing_by_hash[h] = {
+                        "id": p.id,
+                        "payload": p.payload,
+                        "vector": p.vector,
+                    }
+            offset += len(points)
 
         indexed = 0
+        updated = 0
         skipped = 0
         errors = 0
-        points: List[PointStruct] = []
+        new_points: List[PointStruct] = []
+        update_points: List[PointStruct] = []
 
         for file_path in photos_dir.iterdir():
             if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_IMAGE_TYPES:
                 file_hash = self._compute_hash(file_path)
-                if file_hash in existing_hashes:
-                    skipped += 1
+                existing = existing_by_hash.get(file_hash)
+
+                if existing:
+                    # File already indexed — check if metadata is missing
+                    if self._has_metadata(existing["payload"]):
+                        skipped += 1
+                        continue
+                    # Update with metadata only (no re-embedding)
+                    meta = extract_metadata(file_path)
+                    if meta.get("date_taken") or meta.get("location"):
+                        existing["payload"]["date_taken"] = meta.get("date_taken")
+                        existing["payload"]["location"] = meta.get("location")
+                        existing["payload"]["lat"] = meta.get("lat")
+                        existing["payload"]["lon"] = meta.get("lon")
+                        update_points.append(
+                            PointStruct(id=existing["id"], vector=existing["vector"], payload=existing["payload"])
+                        )
+                        updated += 1
+                        logger.info(f"Updated metadata for {file_path.name}: {meta.get('location')}")
+                    else:
+                        skipped += 1
                     continue
 
+                # Brand new file — full embed pipeline
                 vector = self.embedder.embed_image(file_path)
                 if vector is None:
                     errors += 1
@@ -106,13 +132,15 @@ class Indexer:
                 }
 
                 point_id = self._hash_to_uuid(file_hash)
-                points.append(
+                new_points.append(
                     PointStruct(id=point_id, vector=vector, payload=payload)
                 )
                 indexed += 1
 
-        if points:
-            self.store.upsert(points)
+        if new_points:
+            self.store.upsert(new_points)
+        if update_points:
+            self.store.upsert(update_points)
 
-        logger.info(f"Indexing complete: {indexed} new, {skipped} skipped, {errors} errors")
-        return {"indexed": indexed, "skipped": skipped, "errors": errors}
+        logger.info(f"Indexing complete: {indexed} new, {updated} updated, {skipped} skipped, {errors} errors")
+        return {"indexed": indexed, "updated": updated, "skipped": skipped, "errors": errors}

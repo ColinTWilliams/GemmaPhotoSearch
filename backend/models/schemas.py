@@ -34,6 +34,7 @@ class SearchResponse(BaseModel):
 
 class IndexResponse(BaseModel):
     indexed: int
+    updated: int = 0
     skipped: int
     errors: int
 
