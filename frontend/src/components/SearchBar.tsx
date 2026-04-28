@@ -45,7 +45,7 @@ export default function SearchBar({ onSearch, loading, threshold, onThresholdCha
         />
         <button
           type="submit"
-          disabled={loading || !input.trim()}
+          disabled={loading}
           className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white p-2 rounded-lg transition"
         >
           {loading ? (

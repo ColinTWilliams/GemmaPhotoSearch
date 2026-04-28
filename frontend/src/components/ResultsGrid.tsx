@@ -9,15 +9,7 @@ interface ResultsGridProps {
 }
 
 export default function ResultsGrid({ results, query, loading, onPreview }: ResultsGridProps) {
-  if (!query && !loading) {
-    return (
-      <div className="mt-12 text-center text-gray-500">
-        <p className="text-lg">Type a query above to search your photos</p>
-      </div>
-    );
-  }
-
-  if (!loading && results.length === 0 && query) {
+  if (!loading && results.length === 0 && query.trim()) {
     return (
       <div className="mt-12 text-center text-gray-500">
         <p className="text-lg">No matches found for "{query}"</p>
@@ -46,9 +38,11 @@ export default function ResultsGrid({ results, query, loading, onPreview }: Resu
               <span className="text-sm text-gray-300 truncate max-w-[70%]" title={r.file_name}>
                 {r.file_name}
               </span>
-              <span className="text-xs bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">
-                {r.score.toFixed(3)}
-              </span>
+              {query.trim() !== '' && (
+                <span className="text-xs bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">
+                  {r.score.toFixed(3)}
+                </span>
+              )}
             </div>
             {(r.date_taken || r.location) && (
               <div className="mt-1.5 flex flex-col gap-1">

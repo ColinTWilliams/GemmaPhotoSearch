@@ -85,25 +85,33 @@ def index_photos():
 
 @app.post("/search", response_model=SearchResponse)
 def search(request: SearchRequest):
-    if not request.query.strip():
-        raise HTTPException(status_code=400, detail="Query must not be empty")
+    if request.query.strip():
+        try:
+            vector = get_embedder().embed_text(request.query)
+        except ValueError as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
-    try:
-        vector = get_embedder().embed_text(request.query)
-    except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if vector is None:
+            raise HTTPException(status_code=502, detail="Embedding service failed")
 
-    if vector is None:
-        raise HTTPException(status_code=502, detail="Embedding service failed")
+        raw_results = get_store().hybrid_search(
+            vector,
+            top_k=request.top_k,
+            score_threshold=request.score_threshold,
+            date_min=request.date_min,
+            date_max=request.date_max,
+            location_query=request.location_query,
+        )
+    else:
+        # Empty query: browse all photos sorted by date descending
+        raw_results = get_store().scroll_all()
+        raw_results.sort(
+            key=lambda r: r.get("date_taken") or "",
+            reverse=True,
+        )
+        for r in raw_results:
+            r["score"] = 0.0
 
-    raw_results = get_store().hybrid_search(
-        vector,
-        top_k=request.top_k,
-        score_threshold=request.score_threshold,
-        date_min=request.date_min,
-        date_max=request.date_max,
-        location_query=request.location_query,
-    )
     results = [
         SearchResultItem(
             id=r["id"],

@@ -17,14 +17,13 @@ function App() {
 
   useEffect(() => {
     getStats().then(setStats).catch(() => null);
+    // Load all photos on initial mount (empty query browse mode)
+    handleSearch('', { dateMin: '', dateMax: '', locationQuery: '' });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = useCallback(async (q: string, filters: FilterState) => {
     setQuery(q);
-    if (!q.trim()) {
-      setResults([]);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
