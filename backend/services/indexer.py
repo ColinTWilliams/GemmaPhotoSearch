@@ -53,16 +53,21 @@ class Indexer:
 
         # Build a map of existing hashes -> point info (id, payload, vector)
         existing_by_hash: dict[str, dict] = {}
-        offset = 0
+        next_offset = None
         while True:
             response = self.store.client.scroll(
                 collection_name=self.store.collection_name,
-                offset=offset,
+                offset=next_offset,
                 limit=100,
                 with_payload=True,
                 with_vectors=True,
             )
-            points = response[0] if isinstance(response, tuple) else response
+            if isinstance(response, tuple):
+                points = response[0]
+                next_offset = response[1]
+            else:
+                points = response.points
+                next_offset = response.next_page_offset
             if not points:
                 break
             for p in points:
@@ -73,7 +78,8 @@ class Indexer:
                         "payload": p.payload,
                         "vector": p.vector,
                     }
-            offset += len(points)
+            if next_offset is None:
+                break
 
         indexed = 0
         updated = 0

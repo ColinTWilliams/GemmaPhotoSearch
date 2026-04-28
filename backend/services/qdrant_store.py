@@ -137,18 +137,27 @@ class QdrantStore:
                 qdrant_filter = Filter(must=conditions)
 
             # Scroll through all points (or filtered subset if dates)
-            candidates = self.client.scroll(
-                collection_name=self.collection_name,
-                limit=1000,
-                offset=0,
-                with_payload=True,
-                with_vectors=False,
-                scroll_filter=qdrant_filter,
-            )
-            if isinstance(candidates, tuple):
-                candidate_points = candidates[0]
-            else:
-                candidate_points = candidates
+            all_candidates: List[Any] = []
+            next_offset = None
+            while True:
+                page = self.client.scroll(
+                    collection_name=self.collection_name,
+                    limit=1000,
+                    offset=next_offset,
+                    with_payload=True,
+                    with_vectors=False,
+                    scroll_filter=qdrant_filter,
+                )
+                if isinstance(page, tuple):
+                    pts = page[0]
+                    next_offset = page[1]
+                else:
+                    pts = page.points
+                    next_offset = page.next_page_offset
+                all_candidates.extend(pts)
+                if next_offset is None:
+                    break
+            candidate_points = all_candidates
 
             location_lower = (location_query or "").strip().lower()
             for p in candidate_points:
@@ -196,45 +205,50 @@ class QdrantStore:
     def scroll_all(self) -> List[Dict[str, Any]]:
         """Return all points with payload (no vectors)."""
         all_points: List[Dict[str, Any]] = []
-        offset = 0
+        next_offset = None
         while True:
             response = self.client.scroll(
                 collection_name=self.collection_name,
-                offset=offset,
+                offset=next_offset,
                 limit=100,
                 with_payload=True,
                 with_vectors=False,
             )
             if isinstance(response, tuple):
                 points = response[0]
+                next_offset = response[1]
             else:
-                points = response
+                points = response.points
+                next_offset = response.next_page_offset
             if not points:
                 break
             for p in points:
                 all_points.append({"id": str(p.id), **p.payload})
-            offset += len(points)
+            if next_offset is None:
+                break
         return all_points
 
     def get_all_ids(self) -> set:
         """Return all point IDs currently in the collection."""
         all_ids = set()
-        offset = 0
+        next_offset = None
         while True:
             response = self.client.scroll(
                 collection_name=self.collection_name,
-                offset=offset,
+                offset=next_offset,
                 limit=100,
                 with_payload=False,
                 with_vectors=False,
             )
-            # QdrantLocal.scroll returns a tuple: (points, next_offset)
             if isinstance(response, tuple):
                 points = response[0]
+                next_offset = response[1]
             else:
-                points = response
+                points = response.points
+                next_offset = response.next_page_offset
             if not points:
                 break
             all_ids.update(str(p.id) for p in points)
-            offset += len(points)
+            if next_offset is None:
+                break
         return all_ids
