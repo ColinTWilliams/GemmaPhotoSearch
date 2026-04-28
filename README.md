@@ -97,8 +97,10 @@ GeminiPhotoSearch/
 │   ├── models/schemas.py        # Request/response Pydantic models
 │   ├── services/
 │   │   ├── gemini_embedder.py   # Google genai SDK wrapper
-│   │   ├── qdrant_store.py      # Qdrant local vector DB client
-│   │   └── indexer.py           # Photo scan + embed + upsert pipeline
+│   │   ├── qdrant_store.py      # Qdrant local vector DB client + hybrid search
+│   │   ├── indexer.py           # Photo scan + embed + upsert pipeline
+│   │   ├── metadata_extractor.py # EXIF date/GPS extraction + Nominatim geocoding
+│   │   └── docker_manager.py    # Auto-start Qdrant Docker container
 │   ├── requirements.txt
 │   └── .env.example             # Template for your API key
 ├── frontend/
@@ -106,13 +108,13 @@ GeminiPhotoSearch/
 │   │   ├── App.tsx              # Main app shell
 │   │   ├── api.ts               # Fetch wrappers for backend APIs
 │   │   └── components/
-│   │       ├── SearchBar.tsx
-│   │       ├── ResultsGrid.tsx
-│   │       └── ImagePreview.tsx
+│   │       ├── SearchBar.tsx    # Search + date/location filter UI
+│   │       ├── ResultsGrid.tsx  # Thumbnail grid with metadata chips
+│   │       └── ImagePreview.tsx # Full image preview with date/location
 │   ├── package.json
 │   └── vite.config.ts         # Dev proxy to backend
 ├── samplePhotos/                # Your images (gitignored)
-├── .gitignore                   # Excludes .env, samplePhotos, venvs
+├── .gitignore                   # Excludes .env, samplePhotos, venvs, geocache
 └── README.md
 ```
 
@@ -121,7 +123,7 @@ GeminiPhotoSearch/
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/index` | Scan `samplePhotos/`, embed new/changed images, upsert to Qdrant |
-| `POST` | `/search` | `{ "query": "dog park", "top_k": 12 }` — returns ranked results |
+| `POST` | `/search` | `{ "query": "dog park", "top_k": 12, "date_min": "2024-01-01", "date_max": "2024-12-31", "location_query": "Madison" }` — returns ranked results |
 | `GET`  | `/photos/{path}` | Serve original image file for browser preview |
 | `GET`  | `/stats` | Indexed count, collection name, vector size |
 
