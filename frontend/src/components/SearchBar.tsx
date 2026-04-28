@@ -3,9 +3,11 @@ import { useState, useRef, useEffect } from 'react';
 interface SearchBarProps {
   onSearch: (query: string) => void;
   loading: boolean;
+  threshold: number;
+  onThresholdChange: (value: number) => void;
 }
 
-export default function SearchBar({ onSearch, loading }: SearchBarProps) {
+export default function SearchBar({ onSearch, loading, threshold, onThresholdChange }: SearchBarProps) {
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +47,19 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
             </svg>
           )}
         </button>
+      </div>
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <span className="text-xs text-gray-400">Threshold</span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={threshold}
+          onChange={(e) => onThresholdChange(parseFloat(e.target.value))}
+          className="w-32 accent-blue-500"
+        />
+        <span className="text-xs font-mono text-blue-300 w-10 text-right">{threshold.toFixed(2)}</span>
       </div>
       <p className="text-center text-sm text-gray-500 mt-2">
         Try: "dog at the park", "autumn leaves", "family portrait"

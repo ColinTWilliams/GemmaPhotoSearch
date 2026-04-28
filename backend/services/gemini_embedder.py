@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 from google import genai
 from google.genai import types
 from config import settings
@@ -9,6 +9,26 @@ logger = logging.getLogger(__name__)
 
 MODEL = "gemini-embedding-2"
 TASK = "SEMANTIC_SIMILARITY"
+
+DEFAULT_LABELS = [
+    "person", "woman", "man", "child", "baby", "crowd", "face", "portrait",
+    "dog", "cat", "bird", "horse", "deer", "bear", "fish", "insect", "butterfly",
+    "tree", "forest", "mountain", "ocean", "beach", "river", "lake", "waterfall",
+    "sky", "cloud", "sunset", "sunrise", "rainbow", "storm", "snow", "flower", "grass",
+    "car", "truck", "bus", "bicycle", "motorcycle", "boat", "ship", "airplane", "train",
+    "building", "house", "skyscraper", "bridge", "road", "street", "highway",
+    "food", "fruit", "vegetable", "pizza", "cake", "coffee", "drink",
+    "chair", "table", "furniture", "bed", "door", "window", "stairs",
+    "phone", "computer", "laptop", "camera", "watch", "clock", "television",
+    "book", "painting", "sculpture", "musical instrument", "guitar", "piano",
+    "ball", "sports", "running", "swimming", "hiking", "cycling", "skiing",
+    "park", "garden", "city", "downtown", "market", "store", "restaurant",
+    "kitchen", "bedroom", "bathroom", "living room", "office", "classroom",
+    "wedding", "party", "concert", "festival", "meeting", "ceremony",
+    "indoor", "outdoor", "daytime", "nighttime", "sunny", "cloudy", "rainy",
+    "red", "blue", "green", "yellow", "orange", "purple", "pink", "black", "white", "brown", "gray",
+    "macro", "close-up", "landscape", "aerial", "panoramic", "blurry",
+]
 
 
 class GeminiEmbedder:
@@ -65,3 +85,40 @@ class GeminiEmbedder:
         except Exception as e:
             logger.error(f"Failed to embed text '{text}': {e}")
             return None
+
+    def embed_labels(self, labels: List[str]) -> Dict[str, List[float]]:
+        """Embed a batch of labels. Returns {label: vector}."""
+        result: Dict[str, List[float]] = {}
+        # Batch them to reduce API calls
+        for label in labels:
+            vector = self.embed_text(label)
+            if vector is not None:
+                result[label] = vector
+        return result
+
+    def compute_label_similarities(self, image_vector: List[float], label_vectors: Dict[str, List[float]], top_n: int = 5) -> List[str]:
+        """Find the top-N most similar labels for a given image vector using cosine similarity."""
+        if not label_vectors:
+            return []
+
+        # Cosine similarity = dot product of unit vectors
+        import math
+
+        def norm(v):
+            return math.sqrt(sum(x * x for x in v))
+
+        img_norm = norm(image_vector)
+        if img_norm == 0:
+            return []
+
+        scores = []
+        for label, vector in label_vectors.items():
+            vec_norm = norm(vector)
+            if vec_norm == 0:
+                continue
+            dot = sum(a * b for a, b in zip(image_vector, vector))
+            similarity = dot / (img_norm * vec_norm)
+            scores.append((label, similarity))
+
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return [label for label, _ in scores[:top_n]]

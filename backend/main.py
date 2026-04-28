@@ -12,9 +12,13 @@ from models.schemas import SearchRequest, SearchResponse, SearchResultItem, Inde
 from services.gemini_embedder import GeminiEmbedder
 from services.qdrant_store import QdrantStore
 from services.indexer import Indexer
+from services.docker_manager import start_qdrant_container
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Project root is two levels above this file (backend/main.py)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 app = FastAPI(title="GemmaPhotoSearch", version="0.1.0")
 
@@ -38,6 +42,21 @@ def startup():
         logger.error("GEMINI_API_KEY is not set!")
         logger.error("Set the environment variable: GEMINI_API_KEY=your_actual_key_here")
         logger.error("=" * 60)
+
+    # Auto-start Qdrant Docker container if not already running
+    started = start_qdrant_container(_PROJECT_ROOT)
+    if not started:
+        logger.warning(
+            "Qdrant Docker auto-start failed. "
+            "Ensure Docker Desktop is running, or Qdrant will fall back to in-memory mode."
+        )
+
+    # Eagerly initialize QdrantStore so connection failures surface at boot
+    try:
+        get_store()
+    except ConnectionError as e:
+        logger.error(str(e))
+        raise
 
 
 def get_embedder() -> GeminiEmbedder:
@@ -77,7 +96,7 @@ def search(request: SearchRequest):
     if vector is None:
         raise HTTPException(status_code=502, detail="Embedding service failed")
 
-    raw_results = get_store().search(vector, top_k=request.top_k)
+    raw_results = get_store().search(vector, top_k=request.top_k, score_threshold=request.score_threshold)
     results = [
         SearchResultItem(
             id=r["id"],
@@ -87,6 +106,7 @@ def search(request: SearchRequest):
             media_type=r["media_type"],
             width=r.get("width"),
             height=r.get("height"),
+            labels=r.get("labels"),
         )
         for r in raw_results
     ]

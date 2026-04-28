@@ -5,6 +5,7 @@ from typing import List
 class SearchRequest(BaseModel):
     query: str
     top_k: int = 12
+    score_threshold: float = 0.3
 
 
 class SearchResultItem(BaseModel):
@@ -15,6 +16,7 @@ class SearchResultItem(BaseModel):
     media_type: str
     width: int | None = None
     height: int | None = None
+    labels: List[str] | None = None
 
 
 class SearchResponse(BaseModel):

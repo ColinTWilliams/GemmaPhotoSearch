@@ -12,6 +12,7 @@ function App() {
   const [preview, setPreview] = useState<SearchResult | null>(null);
   const [stats, setStats] = useState<{ total_indexed: number } | null>(null);
   const [indexing, setIndexing] = useState(false);
+  const [threshold, setThreshold] = useState(0.3);
 
   useEffect(() => {
     getStats().then(setStats).catch(() => null);
@@ -26,14 +27,14 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = await search(q);
+      const data = await search(q, 12, threshold);
       setResults(data.results);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [threshold]);
 
   const handleIndex = async () => {
     setIndexing(true);
@@ -76,7 +77,12 @@ function App() {
       </header>
 
       <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
-        <SearchBar onSearch={handleSearch} loading={loading} />
+        <SearchBar
+          onSearch={handleSearch}
+          loading={loading}
+          threshold={threshold}
+          onThresholdChange={setThreshold}
+        />
 
         {error && (
           <div className="mt-4 bg-red-900/40 border border-red-700 text-red-200 px-4 py-3 rounded-md">

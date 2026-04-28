@@ -8,7 +8,7 @@ Type natural language queries like "dog at the park" or "autumn leaves" and see 
 
 - **Text-to-image search**: Type any description and find matching photos via multimodal embeddings.
 - **Gemini Embedding 2**: Uses Google's first natively multimodal embedding model (text, image, video, audio, documents in one unified space).
-- **Qdrant vector database**: In-memory vector storage with cosine similarity search (no Docker required).
+- **Qdrant vector database**: Persistent vector storage with cosine similarity search (runs in Docker).
 - **React + Tailwind UI**: Clean, responsive dark-mode interface with image previews.
 - **Extensible**: Ready to add PDFs, videos, and audio later — same vector space, same search.
 
@@ -18,8 +18,8 @@ Type natural language queries like "dog at the park" or "autumn leaves" and see 
 React Frontend  <--HTTP-->  FastAPI Backend  <--API-->  Gemini Embedding 2
      |                            |
      |                            v
-     v                        Qdrant (local)
-Image preview            Vector storage + search
+     v                        Qdrant (Docker)
+Image preview            Persistent vector storage + search
 ```
 
 ## Quick Start
@@ -28,6 +28,7 @@ Image preview            Vector storage + search
 
 - Python 3.12+
 - Node.js 20+
+- Docker Desktop (for Qdrant persistence)
 - A [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key) (free tier available)
 
 ### 2. Clone & Setup
@@ -62,6 +63,8 @@ $env:GEMINI_API_KEY="your_actual_key_here"
 # Start the server
 .venv\Scripts\uvicorn.exe main:app --reload --port 8000
 ```
+
+The backend will automatically start the Qdrant Docker container on startup if Docker Desktop is running. If Docker isn't available, it gracefully falls back to in-memory mode (data won't persist across restarts).
 
 ### 5. Frontend Setup
 
@@ -125,7 +128,7 @@ GemmaPhotoSearch/
 | Layer | Technology | Why |
 |-------|-----------|-----|
 | Embedding API | `google-genai` + `gemini-embedding-2` | GA April 2026; natively multimodal; 3072-dim unified space |
-| Vector DB | Qdrant (local mode) | Open source, Docker-free local persistence, schemaless payloads |
+| Vector DB | Qdrant (Docker) | Persistent, file-lock-free, schemaless payloads |
 | Backend | FastAPI + Uvicorn | Async-native, auto OpenAPI docs, easy file streaming |
 | Frontend | React 19 + Vite + TypeScript + Tailwind CSS | Fast HMR, type safety, modern DX |
 

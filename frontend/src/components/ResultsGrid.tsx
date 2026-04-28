@@ -41,13 +41,27 @@ export default function ResultsGrid({ results, query, loading, onPreview }: Resu
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           </div>
-          <div className="p-3 flex items-center justify-between">
-            <span className="text-sm text-gray-300 truncate max-w-[70%]" title={r.file_name}>
-              {r.file_name}
-            </span>
-            <span className="text-xs bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">
-              {r.score.toFixed(3)}
-            </span>
+          <div className="p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-300 truncate max-w-[70%]" title={r.file_name}>
+                {r.file_name}
+              </span>
+              <span className="text-xs bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">
+                {r.score.toFixed(3)}
+              </span>
+            </div>
+            {r.labels && r.labels.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {r.labels.map((label) => (
+                  <span
+                    key={label}
+                    className="text-xs bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </button>
       ))}

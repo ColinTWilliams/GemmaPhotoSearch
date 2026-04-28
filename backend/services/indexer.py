@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Tuple
 from PIL import Image
 from qdrant_client.models import PointStruct
-from services.gemini_embedder import GeminiEmbedder
+from services.gemini_embedder import GeminiEmbedder, DEFAULT_LABELS
 from services.qdrant_store import QdrantStore
 from config import settings
 
@@ -41,6 +41,10 @@ class Indexer:
         photos_dir = settings.photos_dir.resolve()
         if not photos_dir.exists():
             raise FileNotFoundError(f"Photos directory not found: {photos_dir}")
+
+        # Embed the default label vocabulary once
+        label_vectors = self.embedder.embed_labels(DEFAULT_LABELS)
+        logger.info(f"Embedded {len(label_vectors)} label vectors for label matching")
 
         # Build a map of existing IDs to content hashes to skip re-indexing
         existing_ids = self.store.get_all_ids()
@@ -83,14 +87,16 @@ class Indexer:
                     errors += 1
                     continue
 
+                labels = self.embedder.compute_label_similarities(vector, label_vectors, top_n=5)
                 width, height = self._get_image_dimensions(file_path)
                 payload = {
-                    "file_path": str(file_path.relative_to(Path("..").resolve())),
+                    "file_path": str(file_path.relative_to(settings.photos_dir)).replace("\\", "/"),
                     "file_name": file_path.name,
                     "media_type": "image",
                     "width": width,
                     "height": height,
                     "content_hash": file_hash,
+                    "labels": labels,
                 }
 
                 point_id = self._hash_to_uuid(file_hash)

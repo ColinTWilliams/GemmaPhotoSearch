@@ -8,6 +8,7 @@ export interface SearchResult {
   media_type: string;
   width: number | null;
   height: number | null;
+  labels: string[] | null;
 }
 
 export interface SearchResponse {
@@ -36,11 +37,11 @@ async function handleResponse<T>(res: Response, action: string): Promise<T> {
   return res.json();
 }
 
-export async function search(query: string, top_k = 12): Promise<SearchResponse> {
+export async function search(query: string, top_k = 12, score_threshold = 0.3): Promise<SearchResponse> {
   const res = await fetch(`${API_BASE}/api/search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, top_k }),
+    body: JSON.stringify({ query, top_k, score_threshold }),
   });
   return handleResponse(res, 'Search');
 }

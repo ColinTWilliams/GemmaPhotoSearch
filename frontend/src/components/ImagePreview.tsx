@@ -29,6 +29,18 @@ export default function ImagePreview({ result, onClose }: ImagePreviewProps) {
               <span className="ml-3">{result.width} × {result.height}</span>
             )}
           </p>
+          {result.labels && result.labels.length > 0 && (
+            <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+              {result.labels.map((label) => (
+                <span
+                  key={label}
+                  className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <button
           onClick={onClose}
