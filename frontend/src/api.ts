@@ -9,6 +9,10 @@ export interface SearchResult {
   width: number | null;
   height: number | null;
   labels: string[] | null;
+  date_taken: string | null;
+  location: string | null;
+  lat: number | null;
+  lon: number | null;
 }
 
 export interface SearchResponse {
@@ -37,11 +41,22 @@ async function handleResponse<T>(res: Response, action: string): Promise<T> {
   return res.json();
 }
 
-export async function search(query: string, top_k = 12, score_threshold = 0.3): Promise<SearchResponse> {
+export async function search(
+  query: string,
+  top_k = 12,
+  score_threshold = 0.3,
+  date_min: string | null = null,
+  date_max: string | null = null,
+  location_query: string | null = null,
+): Promise<SearchResponse> {
+  const body: Record<string, unknown> = { query, top_k, score_threshold };
+  if (date_min) body.date_min = date_min;
+  if (date_max) body.date_max = date_max;
+  if (location_query) body.location_query = location_query;
   const res = await fetch(`${API_BASE}/api/search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, top_k, score_threshold }),
+    body: JSON.stringify(body),
   });
   return handleResponse(res, 'Search');
 }

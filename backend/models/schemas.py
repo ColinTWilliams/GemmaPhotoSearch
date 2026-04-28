@@ -6,6 +6,9 @@ class SearchRequest(BaseModel):
     query: str
     top_k: int = 12
     score_threshold: float = 0.3
+    date_min: str | None = None
+    date_max: str | None = None
+    location_query: str | None = None
 
 
 class SearchResultItem(BaseModel):
@@ -17,6 +20,10 @@ class SearchResultItem(BaseModel):
     width: int | None = None
     height: int | None = None
     labels: List[str] | None = None
+    date_taken: str | None = None
+    location: str | None = None
+    lat: float | None = None
+    lon: float | None = None
 
 
 class SearchResponse(BaseModel):

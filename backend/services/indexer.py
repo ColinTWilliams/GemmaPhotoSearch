@@ -7,6 +7,7 @@ from PIL import Image
 from qdrant_client.models import PointStruct
 from services.gemini_embedder import GeminiEmbedder, DEFAULT_LABELS
 from services.qdrant_store import QdrantStore
+from services.metadata_extractor import extract_metadata
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,7 @@ class Indexer:
 
                 labels = self.embedder.compute_label_similarities(vector, label_vectors, top_n=5)
                 width, height = self._get_image_dimensions(file_path)
+                meta = extract_metadata(file_path)
                 payload = {
                     "file_path": str(file_path.relative_to(settings.photos_dir)).replace("\\", "/"),
                     "file_name": file_path.name,
@@ -97,6 +99,10 @@ class Indexer:
                     "height": height,
                     "content_hash": file_hash,
                     "labels": labels,
+                    "date_taken": meta.get("date_taken"),
+                    "location": meta.get("location"),
+                    "lat": meta.get("lat"),
+                    "lon": meta.get("lon"),
                 }
 
                 point_id = self._hash_to_uuid(file_hash)

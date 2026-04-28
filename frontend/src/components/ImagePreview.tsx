@@ -29,6 +29,24 @@ export default function ImagePreview({ result, onClose }: ImagePreviewProps) {
               <span className="ml-3">{result.width} × {result.height}</span>
             )}
           </p>
+          {(result.date_taken || result.location) && (
+            <div className="mt-1.5 text-xs text-gray-400">
+              {result.date_taken && (
+                <span>
+                  {new Date(result.date_taken).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              )}
+              {result.location && (
+                <span className="ml-2">{result.location}</span>
+              )}
+            </div>
+          )}
           {result.labels && result.labels.length > 0 && (
             <div className="mt-2 flex flex-wrap justify-center gap-1.5">
               {result.labels.map((label) => (

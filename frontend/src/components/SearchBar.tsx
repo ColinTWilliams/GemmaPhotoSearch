@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 
+export interface FilterState {
+  dateMin: string;
+  dateMax: string;
+  locationQuery: string;
+}
+
 interface SearchBarProps {
-  onSearch: (query: string) => void;
+  onSearch: (query: string, filters: FilterState) => void;
   loading: boolean;
   threshold: number;
   onThresholdChange: (value: number) => void;
@@ -9,6 +15,10 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch, loading, threshold, onThresholdChange }: SearchBarProps) {
   const [input, setInput] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateMin, setDateMin] = useState('');
+  const [dateMax, setDateMax] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -17,8 +27,10 @@ export default function SearchBar({ onSearch, loading, threshold, onThresholdCha
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(input);
+    onSearch(input, { dateMin, dateMax, locationQuery });
   };
+
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
@@ -48,6 +60,7 @@ export default function SearchBar({ onSearch, loading, threshold, onThresholdCha
           )}
         </button>
       </div>
+
       <div className="mt-3 flex items-center justify-center gap-3">
         <span className="text-xs text-gray-400">Threshold</span>
         <input
@@ -60,7 +73,52 @@ export default function SearchBar({ onSearch, loading, threshold, onThresholdCha
           className="w-32 accent-blue-500"
         />
         <span className="text-xs font-mono text-blue-300 w-10 text-right">{threshold.toFixed(2)}</span>
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="text-xs text-blue-400 hover:text-blue-300 underline ml-2"
+        >
+          {showFilters ? 'Hide filters' : 'Filters'}
+        </button>
       </div>
+
+      {showFilters && (
+        <div className="mt-3 bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">From date</label>
+              <input
+                type="date"
+                max={today}
+                value={dateMin}
+                onChange={(e) => setDateMin(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">To date</label>
+              <input
+                type="date"
+                max={today}
+                value={dateMax}
+                onChange={(e) => setDateMax(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Location</label>
+            <input
+              type="text"
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+              placeholder="e.g. Monroe Street, Madison"
+              className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      )}
+
       <p className="text-center text-sm text-gray-500 mt-2">
         Try: "dog at the park", "autumn leaves", "family portrait"
       </p>

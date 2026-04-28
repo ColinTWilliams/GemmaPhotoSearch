@@ -50,6 +50,16 @@ export default function ResultsGrid({ results, query, loading, onPreview }: Resu
                 {r.score.toFixed(3)}
               </span>
             </div>
+            {(r.date_taken || r.location) && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] text-gray-400 leading-tight">
+                {r.date_taken && (
+                  <span>{new Date(r.date_taken).toLocaleDateString()}</span>
+                )}
+                {r.location && (
+                  <span className="truncate max-w-full" title={r.location}>{r.location}</span>
+                )}
+              </div>
+            )}
             {r.labels && r.labels.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {r.labels.map((label) => (

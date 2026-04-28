@@ -33,6 +33,9 @@ qdrant_storage/
 # Sample photos - do NOT commit personal media
 samplePhotos/
 
+# Geocoding cache (SQLite)
+backend/data/
+
 # Secrets
 *.pem
 *.key

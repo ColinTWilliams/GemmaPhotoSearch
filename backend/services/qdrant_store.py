@@ -1,8 +1,9 @@
+import difflib
 import logging
 import time
 from typing import List, Dict, Any
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, Range, MatchValue
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -100,8 +101,120 @@ class QdrantStore:
             for p in response.points
         ]
 
+    def hybrid_search(
+        self,
+        vector: List[float],
+        top_k: int = 12,
+        score_threshold: float = 0.3,
+        date_min: str | None = None,
+        date_max: str | None = None,
+        location_query: str | None = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Hybrid search: semantic vector search OR metadata fuzzy matching.
+        Returns deduplicated, sorted results.
+        """
+        # --- Semantic leg (vector search) ---
+        semantic_results = self.search(vector, top_k=top_k * 4, score_threshold=score_threshold)
+
+        # --- Metadata leg ---
+        metadata_results: List[Dict[str, Any]] = []
+        need_metadata = bool(location_query or date_min or date_max)
+
+        if need_metadata:
+            # Build Qdrant date filter if dates are provided
+            qdrant_filter = None
+            if date_min or date_max:
+                conditions = []
+                if date_min:
+                    conditions.append(
+                        FieldCondition(key="date_taken", range=Range(gte=date_min))
+                    )
+                if date_max:
+                    conditions.append(
+                        FieldCondition(key="date_taken", range=Range(lte=date_max))
+                    )
+                qdrant_filter = Filter(must=conditions)
+
+            # Scroll through all points (or filtered subset if dates)
+            candidates = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=1000,
+                offset=0,
+                with_payload=True,
+                with_vectors=False,
+                scroll_filter=qdrant_filter,
+            )
+            if isinstance(candidates, tuple):
+                candidate_points = candidates[0]
+            else:
+                candidate_points = candidates
+
+            location_lower = (location_query or "").strip().lower()
+            for p in candidate_points:
+                payload = p.payload
+                # Date check already handled by Qdrant filter if provided
+                # Location fuzzy match
+                matched = False
+                if location_lower:
+                    loc = (payload.get("location") or "").lower()
+                    # difflib ratio threshold 0.4 gives reasonable fuzzy matching
+                    if location_lower in loc:
+                        matched = True
+                    elif loc and difflib.SequenceMatcher(None, location_lower, loc).ratio() > 0.4:
+                        matched = True
+                else:
+                    # If only date filters, all returned candidates match
+                    matched = True
+
+                if matched:
+                    metadata_results.append({
+                        "id": str(p.id),
+                        "score": 0.95,  # synthetic score for metadata matches
+                        **payload,
+                    })
+
+        # --- Merge & deduplicate ---
+        seen = set()
+        merged: List[Dict[str, Any]] = []
+        for r in semantic_results:
+            if r["id"] not in seen:
+                seen.add(r["id"])
+                merged.append(r)
+        for r in metadata_results:
+            if r["id"] not in seen:
+                seen.add(r["id"])
+                merged.append(r)
+
+        # Sort by score descending
+        merged.sort(key=lambda x: x["score"], reverse=True)
+        return merged[:top_k]
+
     def count(self) -> int:
         return self.client.count(collection_name=self.collection_name).count
+
+    def scroll_all(self) -> List[Dict[str, Any]]:
+        """Return all points with payload (no vectors)."""
+        all_points: List[Dict[str, Any]] = []
+        offset = 0
+        while True:
+            response = self.client.scroll(
+                collection_name=self.collection_name,
+                offset=offset,
+                limit=100,
+                with_payload=True,
+                with_vectors=False,
+            )
+            if isinstance(response, tuple):
+                points = response[0]
+            else:
+                points = response
+            if not points:
+                break
+            for p in points:
+                all_points.append({"id": str(p.id), **p.payload})
+            offset += len(points)
+        return all_points
 
     def get_all_ids(self) -> set:
         """Return all point IDs currently in the collection."""

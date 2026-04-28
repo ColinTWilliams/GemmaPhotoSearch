@@ -3,6 +3,7 @@ import SearchBar from './components/SearchBar';
 import ResultsGrid from './components/ResultsGrid';
 import ImagePreview from './components/ImagePreview';
 import { search, indexPhotos, getStats, SearchResult } from './api';
+import type { FilterState } from './components/SearchBar';
 
 function App() {
   const [query, setQuery] = useState('');
@@ -18,7 +19,7 @@ function App() {
     getStats().then(setStats).catch(() => null);
   }, []);
 
-  const handleSearch = useCallback(async (q: string) => {
+  const handleSearch = useCallback(async (q: string, filters: FilterState) => {
     setQuery(q);
     if (!q.trim()) {
       setResults([]);
@@ -27,7 +28,14 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = await search(q, 12, threshold);
+      const data = await search(
+        q,
+        12,
+        threshold,
+        filters.dateMin || null,
+        filters.dateMax || null,
+        filters.locationQuery || null,
+      );
       setResults(data.results);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');

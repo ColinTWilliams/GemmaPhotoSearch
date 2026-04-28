@@ -96,7 +96,14 @@ def search(request: SearchRequest):
     if vector is None:
         raise HTTPException(status_code=502, detail="Embedding service failed")
 
-    raw_results = get_store().search(vector, top_k=request.top_k, score_threshold=request.score_threshold)
+    raw_results = get_store().hybrid_search(
+        vector,
+        top_k=request.top_k,
+        score_threshold=request.score_threshold,
+        date_min=request.date_min,
+        date_max=request.date_max,
+        location_query=request.location_query,
+    )
     results = [
         SearchResultItem(
             id=r["id"],
@@ -107,6 +114,10 @@ def search(request: SearchRequest):
             width=r.get("width"),
             height=r.get("height"),
             labels=r.get("labels"),
+            date_taken=r.get("date_taken"),
+            location=r.get("location"),
+            lat=r.get("lat"),
+            lon=r.get("lon"),
         )
         for r in raw_results
     ]

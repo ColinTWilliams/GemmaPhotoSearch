@@ -7,10 +7,12 @@ Type natural language queries like "dog at the park" or "autumn leaves" and see 
 ## Features
 
 - **Text-to-image search**: Type any description and find matching photos via multimodal embeddings.
+- **Hybrid metadata search**: Searches for location names (e.g. "Monroe St, Madison WI") and date ranges alongside semantic embeddings.
+- **Auto EXIF metadata**: Extracts date taken and GPS coordinates from photo EXIF. Reverse-geocodes locations via Nominatim (cached in SQLite).
 - **Gemini Embedding 2**: Uses Google's first natively multimodal embedding model (text, image, video, audio, documents in one unified space).
+- **Semantic auto-labeling**: Each photo gets 5 AI-generated labels from a vocabulary of ~100 categories.
 - **Qdrant vector database**: Persistent vector storage with cosine similarity search (runs in Docker).
-- **React + Tailwind UI**: Clean, responsive dark-mode interface with image previews.
-- **Extensible**: Ready to add PDFs, videos, and audio later — same vector space, same search.
+- **React + Tailwind UI**: Clean, responsive dark-mode interface with image previews, date filters, and location tags.
 
 ## Architecture
 
