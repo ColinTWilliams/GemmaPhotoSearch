@@ -114,7 +114,13 @@ def _dms_to_dd(dms, ref: str) -> float:
 
 
 def extract_gps(exif_data: dict) -> Tuple[float, float] | None:
-    gps_info = exif_data.get("GPSInfo")
+    """Extract (lat, lon) from EXIF GPSInfo IFD (tag 34853).
+
+    PIL returns GPSInfo as a dict with integer keys:
+      1 = GPSLatitudeRef, 2 = GPSLatitude,
+      3 = GPSLongitudeRef, 4 = GPSLongitude.
+    """
+    gps_info = exif_data.get(34853)  # GPSInfo tag ID
     if not gps_info:
         return None
     try:
